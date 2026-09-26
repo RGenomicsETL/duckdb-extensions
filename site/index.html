@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RGenomicsETL DuckDB extensions</title>
+<style>
+:root { --bg: #fbfaf7; --fg: #1d1d1b; --muted: #5d5d58; --rule: #dedbd2; --code: #f1efe8; --accent: #2f5d50; }
+@media (prefers-color-scheme: dark) { :root { --bg: #151514; --fg: #e8e6df; --muted: #a09d94; --rule: #34332f; --code: #22221f; --accent: #8cc2ae; } }
+body { background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; }
+main { max-width: 52rem; margin: 0 auto; padding: 2.5rem 16px 4rem; }
+h1 { font-size: 1.7rem; margin: 0 0 .3rem; } h2 { font-size: 1.15rem; margin-top: 2.2rem; }
+p.lede { color: var(--muted); margin-top: 0; }
+pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88rem; }
+pre { background: var(--code); padding: .9rem 1rem; overflow-x: auto; border-radius: 6px; }
+code { background: var(--code); padding: .1rem .3rem; border-radius: 4px; }
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; font-size: .92rem; display: block; overflow-x: auto; }
+th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+a { color: var(--accent); }
+.fp { word-break: break-all; }
+</style>
+</head>
+<body>
+<main>
+<h1>RGenomicsETL DuckDB extensions</h1>
+<p class="lede">Signed builds of <a href="https://github.com/RGenomicsETL">RGenomicsETL</a> extensions, served as DuckDB
+<a href="https://github.com/duckdb/duckdb/pull/24777">external extension repositories</a> (DuckDB 2.0 and later).</p>
+
+<h2>Use</h2>
+<p>Register a channel once:</p>
+<pre><code>SET allow_extension_repositories = 'allowed';
+CREATE EXTENSION REPOSITORY rgenomicsetl
+  WITH PREFIX 'https://rgenomicsetl.github.io/duckdb-extensions/stable';
+INSTALL AND LOAD duckhts FROM rgenomicsetl;</code></pre>
+<p>Check that the fingerprint DuckDB prints matches the one below before installing. Use the
+<code>dev</code> prefix for builds from each project's main branch. A specific build can be installed
+with <code>FORCE INSTALL duckhts VERSION '…' FROM rgenomicsetl</code>, loaded in a fresh database instance.</p>
+
+<h2>Channels</h2>
+<table>
+<tr><th>Channel</th><th>Prefix</th><th>Key fingerprint</th></tr>
+<tr><td>stable</td><td><code>…/duckdb-extensions/stable</code></td><td class="fp"><code>{{STABLE_FINGERPRINT}}</code></td></tr>
+<tr><td>dev</td><td><code>…/duckdb-extensions/dev</code></td><td class="fp"><code>{{DEV_FINGERPRINT}}</code></td></tr>
+</table>
+<p>Stable only carries releases that also went to CRAN and the DuckDB community repository.</p>
+
+<h2>Published</h2>
+<table>
+<tr><th>Channel</th><th>Extension</th><th>Version</th><th>DuckDB</th><th>Platforms</th><th>Source</th></tr>
+{{TABLE}}
+</table>
+
+<p><a href="https://github.com/RGenomicsETL/duckdb-extensions">Source, manifest and signing workflow</a></p>
+</main>
+</body>
+</html>

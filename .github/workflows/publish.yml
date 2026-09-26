@@ -1,0 +1,108 @@
+name: Publish extension
+
+# Sign one extension build from another repository's CI run and publish it to a
+# channel. Signed binaries are stored as release assets here; the Pages site is
+# rebuilt from manifest.json afterwards.
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Channel (stable only carries CRAN-matched releases)
+        type: choice
+        options: [dev, stable]
+        required: true
+      source_repo:
+        description: Repository whose CI built the extension
+        default: RGenomicsETL/duckhts
+        required: true
+      run_id:
+        description: Successful distribution-pipeline run ID in that repository
+        required: true
+      extension:
+        description: Extension name
+        default: duckhts
+        required: true
+      duckdb_versions:
+        description: Space-separated DuckDB version directories to serve it under
+        default: v2.0.0
+        required: true
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: registry
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.channel }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the source run
+        id: source
+        run: |
+          run=$(gh api "repos/${{ inputs.source_repo }}/actions/runs/${{ inputs.run_id }}")
+          conclusion=$(jq -r .conclusion <<<"$run")
+          [ "$conclusion" = success ] || { echo "::error::run ${{ inputs.run_id }} concluded '$conclusion'"; exit 1; }
+          echo "sha=$(jq -r .head_sha <<<"$run")" >> "$GITHUB_OUTPUT"
+          echo "branch=$(jq -r .head_branch <<<"$run")" >> "$GITHUB_OUTPUT"
+
+      - name: Refuse stable builds that are not tagged releases
+        if: inputs.channel == 'stable'
+        run: |
+          tags=$(gh api "repos/${{ inputs.source_repo }}/tags" --paginate -q '.[] | select(.commit.sha == "${{ steps.source.outputs.sha }}") | .name')
+          [ -n "$tags" ] || { echo "::error::stable requires a tagged release commit"; exit 1; }
+          echo "release tags: $tags"
+
+      - name: Download artifacts
+        run: gh run download "${{ inputs.run_id }}" -R "${{ inputs.source_repo }}" -p "${{ inputs.extension }}-*-extension-*" -D art
+
+      - name: Sign
+        env:
+          # Environment secret: each channel's key is only visible to jobs in that environment.
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+        run: |
+          umask 077
+          key=$(mktemp); trap 'rm -f "$key"' EXIT
+          printf '%s\n' "$SIGNING_KEY" > "$key"
+          [ "$(openssl pkey -in "$key" -pubout)" = "$(cat keys/${{ inputs.channel }}.pem)" ] || { echo "::error::signing key does not match keys/${{ inputs.channel }}.pem"; exit 1; }
+          python3 scripts/registry.py prepare --channel "${{ inputs.channel }}" --extension "${{ inputs.extension }}" \
+            --artifacts art --out dist --key "$key" --duckdb-versions "${{ inputs.duckdb_versions }}" \
+            --source-repo "${{ inputs.source_repo }}" --source-sha "${{ steps.source.outputs.sha }}" --run-id "${{ inputs.run_id }}"
+
+      - name: Verify through DuckDB 2.0 with signature checking on
+        run: |
+          python3 -m venv /tmp/duckdb2
+          /tmp/duckdb2/bin/pip install --quiet --pre 'duckdb>=2.0.0.dev0'
+          /tmp/duckdb2/bin/python scripts/registry.py verify --dist dist
+
+      - name: Store signed binaries as a release
+        run: |
+          tag=$(jq -r .tag dist/entry.json)
+          notes="Signed ${{ inputs.extension }} $(jq -r .version dist/entry.json) for the ${{ inputs.channel }} channel, built by ${{ inputs.source_repo }}@${{ steps.source.outputs.sha }} (run ${{ inputs.run_id }})."
+          gh release create "$tag" dist/*.gz --title "$tag" --notes "$notes" --target "$GITHUB_SHA" --prerelease
+
+      - name: Record in manifest.json
+        run: |
+          python3 scripts/registry.py record --entry dist/entry.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git commit -m "Publish $(jq -r .tag dist/entry.json)"
+          git push
+
+  pages:
+    needs: publish
+    uses: ./.github/workflows/pages.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
