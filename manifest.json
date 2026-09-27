@@ -1,3 +1,47 @@
 {
-  "releases": []
+  "releases": [
+    {
+      "channel": "dev",
+      "extension": "duckhts",
+      "version": "1.5.2.9003",
+      "tag": "dev/duckhts/1.5.2.9003",
+      "duckdb_versions": [
+        "v2.0.0",
+        "v2.0.0-alpha43385"
+      ],
+      "platforms": {
+        "linux_amd64": {
+          "asset": "duckhts.linux_amd64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        },
+        "linux_arm64": {
+          "asset": "duckhts.linux_arm64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        },
+        "osx_amd64": {
+          "asset": "duckhts.osx_amd64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        },
+        "osx_arm64": {
+          "asset": "duckhts.osx_arm64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        },
+        "windows_amd64_mingw": {
+          "asset": "duckhts.windows_amd64_mingw.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        }
+      },
+      "key_fingerprint": "sha256:4e6e3fd190e775be1edd33003c3966f6fe5bd6312dfb1ca4d4ecabe7c65c9335",
+      "source": {
+        "repo": "RGenomicsETL/duckhts",
+        "sha": "27a7b6a035c7e4a65a0cb9a01af4e8bb36644ef5",
+        "run_id": "36313474966"
+      }
+    }
+  ]
 }
