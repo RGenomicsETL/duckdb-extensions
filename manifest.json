@@ -126,6 +126,48 @@
         "sha": "b7c0d03793ce3ba38e8ef3e97542fcd7aa9d444c",
         "run_id": "36731467061"
       }
+    },
+    {
+      "channel": "dev",
+      "extension": "ducksassy",
+      "version": "0.1.0",
+      "tag": "dev/ducksassy/0.1.0",
+      "duckdb_versions": [
+        "v2.0.0"
+      ],
+      "platforms": {
+        "linux_amd64": {
+          "asset": "ducksassy.linux_amd64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        },
+        "linux_arm64": {
+          "asset": "ducksassy.linux_arm64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        },
+        "osx_amd64": {
+          "asset": "ducksassy.osx_amd64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        },
+        "osx_arm64": {
+          "asset": "ducksassy.osx_arm64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        },
+        "windows_amd64_mingw": {
+          "asset": "ducksassy.windows_amd64_mingw.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        }
+      },
+      "key_fingerprint": "sha256:4e6e3fd190e775be1edd33003c3966f6fe5bd6312dfb1ca4d4ecabe7c65c9335",
+      "source": {
+        "repo": "RGenomicsETL/ducksassy",
+        "sha": "5fbc30e91661ddbdd23c3200c5e402823eea9db6",
+        "run_id": "36474394322"
+      }
     }
   ]
 }
