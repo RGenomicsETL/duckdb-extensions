@@ -92,6 +92,11 @@ jobs:
 
       - name: Record in manifest.json
         run: |
+          # Runs are serialized by the registry concurrency group, but each one checks out the
+          # commit it was dispatched at; append to the manifest as it is on main now, so a
+          # publication queued behind another does not push onto a stale base.
+          git fetch --quiet origin main
+          git reset --hard origin/main
           python3 scripts/registry.py record --entry dist/entry.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
