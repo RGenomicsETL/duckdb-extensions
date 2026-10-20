@@ -141,8 +141,8 @@ def cmd_verify(args):
         sys.exit("verify needs a linux_amd64 build")
     with tempfile.TemporaryDirectory() as tmp:
         probe = duckdb.connect()
-        engine = probe.sql("SELECT library_version FROM pragma_version()").fetchone()[0]
-        platform = probe.sql("PRAGMA platform").fetchone()[0]
+        engine = probe.execute("SELECT library_version FROM pragma_version()").fetchone()[0]
+        platform = probe.execute("PRAGMA platform").fetchone()[0]
         if platform != "linux_amd64":
             sys.exit(f"verify runs on linux_amd64, not {platform}")
         target = Path(tmp, "repo", engine, platform)
@@ -158,8 +158,8 @@ def cmd_verify(args):
                 "extension_repository_directory": str(Path(tmp, home, "repositories")),
             })
             key = (KEYS / f"{channel_key}.pem").read_text().replace("'", "''")
-            con.sql(f"CREATE EXTENSION REPOSITORY probe WITH PREFIX '{prefix}' USING PUBLIC KEY '{key}'")
-            con.sql(f"INSTALL {entry['extension']} FROM probe")
+            con.execute(f"CREATE EXTENSION REPOSITORY probe WITH PREFIX '{prefix}' USING PUBLIC KEY '{key}'")
+            con.execute(f"INSTALL {entry['extension']} FROM probe")
 
         install(entry["channel"], "accept")
         print(f"{entry['extension']} {entry['version']}: accepted by the {entry['channel']} key on DuckDB {engine}")
