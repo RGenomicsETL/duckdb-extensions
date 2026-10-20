@@ -6,7 +6,11 @@ Subcommands:
   prepare --channel C --extension NAME --artifacts DIR --out DIR --key PEM
                                    validate CI artifacts, sign and gzip them
   verify --dist DIR                install the prepared build through DuckDB with signatures on
-  record --entry JSON              append a prepared entry to manifest.json
+  record --entry JSON [--supersede]
+                                   append a prepared entry to manifest.json; --supersede lets a
+                                   dev entry replace the recorded build of the same version
+  pending --out JSON               list the sources (sources.json) whose latest successful
+                                   main-branch build is not the recorded dev build
   site --out DIR [--assets DIR]    build the static repository from manifest.json
 
 Signing follows DuckDB's scripts/extension-upload-single.sh: the last 256
@@ -175,10 +179,49 @@ def cmd_verify(args):
 def cmd_record(args):
     entry = json.loads(Path(args.entry).read_text())
     manifest = load_manifest()
-    if any(e["tag"] == entry["tag"] for e in manifest["releases"]):
-        sys.exit(f"{entry['tag']} is already recorded; publish a new extension version instead")
-    manifest["releases"].append(entry)
+    existing = [i for i, e in enumerate(manifest["releases"]) if e["tag"] == entry["tag"]]
+    if existing:
+        # dev is a moving channel: the same extension version is rebuilt as main moves,
+        # and the latest build replaces the recorded one. stable keeps every version once.
+        if entry["channel"] != "dev" or not args.supersede:
+            sys.exit(f"{entry['tag']} is already recorded; publish a new extension version instead")
+        manifest["releases"][existing[-1]] = entry
+    else:
+        manifest["releases"].append(entry)
     MANIFEST.write_text(json.dumps(manifest, indent=2) + "\n")
+
+
+def latest_success(repo: str, workflow: str, branch: str) -> dict | None:
+    out = subprocess.run(["gh", "run", "list", "-R", repo, "--workflow", workflow, "--branch", branch,
+                          "--status", "success", "--limit", "1", "--json", "databaseId,headSha,createdAt"],
+                         check=True, capture_output=True, text=True).stdout
+    runs = json.loads(out)
+    return runs[0] if runs else None
+
+
+def cmd_pending(args):
+    """Sources whose latest successful branch build differs from the recorded dev build."""
+    sources = json.loads((ROOT / "sources.json").read_text())["sources"]
+    manifest = load_manifest()
+    pending = []
+    for source in sources:
+        run = latest_success(source["repo"], source["workflow"], source["branch"])
+        if run is None:
+            print(f"{source['extension']}: no successful {source['branch']} build", file=sys.stderr)
+            continue
+        recorded = [e for e in manifest["releases"]
+                    if e["channel"] == "dev" and e["extension"] == source["extension"]]
+        recorded_sha = recorded[-1]["source"]["sha"] if recorded else None
+        if recorded_sha == run["headSha"]:
+            print(f"{source['extension']}: dev is at {run['headSha'][:8]} already", file=sys.stderr)
+            continue
+        print(f"{source['extension']}: {recorded_sha[:8] if recorded_sha else 'none'} -> {run['headSha'][:8]} "
+              f"(run {run['databaseId']})", file=sys.stderr)
+        pending.append({"repo": source["repo"], "extension": source["extension"],
+                        "run_id": str(run["databaseId"]), "sha": run["headSha"],
+                        "duckdb_versions": source["duckdb_versions"]})
+    Path(args.out).write_text(json.dumps(pending) + "\n")
+    print(json.dumps(pending))
 
 
 def fetch_asset(entry: dict, asset: str, assets: Path) -> Path:
@@ -249,7 +292,10 @@ def main():
     pr.add_argument("--run-id", required=True)
     pr.set_defaults(func=cmd_prepare)
     v = sub.add_parser("verify"); v.add_argument("--dist", required=True); v.set_defaults(func=cmd_verify)
-    r = sub.add_parser("record"); r.add_argument("--entry", required=True); r.set_defaults(func=cmd_record)
+    r = sub.add_parser("record"); r.add_argument("--entry", required=True)
+    r.add_argument("--supersede", action="store_true", help="let a dev entry replace the same version")
+    r.set_defaults(func=cmd_record)
+    pe = sub.add_parser("pending"); pe.add_argument("--out", required=True); pe.set_defaults(func=cmd_pending)
     s = sub.add_parser("site"); s.add_argument("--out", required=True); s.add_argument("--assets", default=".assets")
     s.set_defaults(func=cmd_site)
     args = p.parse_args()

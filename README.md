@@ -23,9 +23,11 @@ to `duckdb::duckdb()`.
 | `stable` | `https://rgenomicsetl.github.io/duckdb-extensions/stable` | releases that also went to CRAN and the DuckDB community repository | `sha256:c11997ddf402e763899c49ef98a2d6baadf726ab5dac8ecfbf7c3f561da86652` |
 | `dev` | `https://rgenomicsetl.github.io/duckdb-extensions/dev` | builds from each project's main branch | `sha256:4e6e3fd190e775be1edd33003c3966f6fe5bd6312dfb1ca4d4ecabe7c65c9335` |
 
-Every published build stays installable by version. DuckDB keeps one installed copy per
-extension, so switch versions with `FORCE INSTALL duckhts VERSION '1.5.2.9003' FROM rgenomicsetl`
-and load it in a fresh database instance.
+Every stable build stays installable by version. DuckDB keeps one installed copy per
+extension, so switch versions with `FORCE INSTALL duckhts VERSION '2.0.0' FROM rgenomicsetl`
+and load it in a fresh database instance. The dev channel is a moving target: it serves the
+latest build of each source version (for example `2.0.0.9000`), and a newer main commit with
+the same version replaces it.
 
 ## How it works
 
@@ -35,6 +37,11 @@ and load it in a fresh database instance.
   checks each binary's footer (platform, ABI, extension version), signs it with the channel key
   exactly as DuckDB's own `extension-upload-single.sh` does, stores the signed binaries as a
   release here and appends to the manifest. Stable publications must come from a tagged commit.
+- The **Sync dev channel** workflow runs every three hours (and on demand): for each source in
+  [`sources.json`](sources.json) it finds the latest successful main-branch distribution run and,
+  when its commit is not the recorded dev build, publishes it through the same signing path.
+  The `dev` environment has no reviewers, so this runs unattended; `stable` stays a manual,
+  reviewed dispatch.
 - The **Pages** workflow lays the manifest out as DuckDB expects:
   `<channel>/<duckdb version>/<platform>/<name>.duckdb_extension.gz` for the latest build and
   `<channel>/<name>/<version>/<duckdb version>/<platform>/…` for every build, plus

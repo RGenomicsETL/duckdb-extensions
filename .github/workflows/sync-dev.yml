@@ -1,0 +1,56 @@
+name: Sync dev channel
+
+# Every few hours, publish to the dev channel the latest successful main-branch
+# build of each source in sources.json whose commit is not the recorded dev build.
+# The dev environment has no reviewers, so this runs unattended; stable stays manual.
+
+on:
+  schedule:
+    - cron: "23 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: registry
+  cancel-in-progress: false
+
+jobs:
+  pending:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    outputs:
+      matrix: ${{ steps.pending.outputs.matrix }}
+      count: ${{ steps.pending.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: pending
+        run: |
+          python3 scripts/registry.py pending --out pending.json
+          echo "matrix=$(cat pending.json)" >> "$GITHUB_OUTPUT"
+          echo "count=$(jq length pending.json)" >> "$GITHUB_OUTPUT"
+
+  publish:
+    needs: pending
+    if: needs.pending.outputs.count != '0'
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.pending.outputs.matrix) }}
+    uses: ./.github/workflows/publish.yml
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    secrets: inherit
+    with:
+      channel: dev
+      source_repo: ${{ matrix.repo }}
+      run_id: ${{ matrix.run_id }}
+      extension: ${{ matrix.extension }}
+      duckdb_versions: ${{ matrix.duckdb_versions }}

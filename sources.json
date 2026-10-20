@@ -1,0 +1,32 @@
+{
+  "sources": [
+    {
+      "repo": "RGenomicsETL/duckhts",
+      "extension": "duckhts",
+      "workflow": "MainDistributionPipeline.yml",
+      "branch": "main",
+      "duckdb_versions": "v2.0.0"
+    },
+    {
+      "repo": "RGenomicsETL/DuckVEP",
+      "extension": "duckvep",
+      "workflow": "MainDistributionPipeline.yml",
+      "branch": "main",
+      "duckdb_versions": "v2.0.0"
+    },
+    {
+      "repo": "RGenomicsETL/ducksassy",
+      "extension": "ducksassy",
+      "workflow": "MainDistributionPipeline.yml",
+      "branch": "main",
+      "duckdb_versions": "v2.0.0"
+    },
+    {
+      "repo": "sounkou-bioinfo/DuckTinyCC",
+      "extension": "ducktinycc",
+      "workflow": "MainDistributionPipeline.yml",
+      "branch": "main",
+      "duckdb_versions": "v2.0.0"
+    }
+  ]
+}

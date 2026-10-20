@@ -27,6 +27,23 @@ on:
         description: Space-separated DuckDB version directories to serve it under
         default: v2.0.0
         required: true
+  workflow_call:
+    inputs:
+      channel:
+        type: string
+        required: true
+      source_repo:
+        type: string
+        required: true
+      run_id:
+        type: string
+        required: true
+      extension:
+        type: string
+        required: true
+      duckdb_versions:
+        type: string
+        required: true
 
 permissions:
   contents: write
@@ -84,6 +101,15 @@ jobs:
           /tmp/duckdb2/bin/pip install --quiet --pre 'duckdb>=2.0.0.dev0'
           /tmp/duckdb2/bin/python scripts/registry.py verify --dist dist
 
+      - name: Supersede the recorded dev build of this version
+        if: inputs.channel == 'dev'
+        run: |
+          tag=$(jq -r .tag dist/entry.json)
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "replacing the release $tag with the build of ${{ steps.source.outputs.sha }}"
+            gh release delete "$tag" --yes --cleanup-tag
+          fi
+
       - name: Store signed binaries as a release
         run: |
           tag=$(jq -r .tag dist/entry.json)
@@ -97,11 +123,12 @@ jobs:
           # publication queued behind another does not push onto a stale base.
           git fetch --quiet origin main
           git reset --hard origin/main
-          python3 scripts/registry.py record --entry dist/entry.json
+          python3 scripts/registry.py record --entry dist/entry.json \
+            $([ "${{ inputs.channel }}" = dev ] && echo --supersede)
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add manifest.json
-          git commit -m "Publish $(jq -r .tag dist/entry.json)"
+          git commit -m "Publish $(jq -r .tag dist/entry.json) from ${{ steps.source.outputs.sha }}"
           git push
 
   pages:
