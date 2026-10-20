@@ -58,3 +58,14 @@ jobs:
       run_id: ${{ matrix.run_id }}
       extension: ${{ matrix.extension }}
       duckdb_versions: ${{ matrix.duckdb_versions }}
+      deploy_pages: false
+
+  # Every publication above records itself on main; one deploy then serves them all.
+  pages:
+    needs: [pending, publish]
+    if: ${{ !cancelled() && needs.pending.outputs.count != '0' }}
+    uses: ./.github/workflows/pages.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write

@@ -27,6 +27,10 @@ on:
         description: Space-separated DuckDB version directories to serve it under
         default: v2.0.0
         required: true
+      deploy_pages:
+        description: Rebuild the Pages site afterwards
+        type: boolean
+        default: true
   workflow_call:
     inputs:
       channel:
@@ -44,6 +48,11 @@ on:
       duckdb_versions:
         type: string
         required: true
+      deploy_pages:
+        # A caller that publishes several extensions in one run deploys Pages once
+        # itself: two deploys in one run both upload an artifact named github-pages.
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -134,6 +143,7 @@ jobs:
 
   pages:
     needs: publish
+    if: inputs.deploy_pages
     uses: ./.github/workflows/pages.yml
     permissions:
       contents: read
