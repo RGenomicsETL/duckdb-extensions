@@ -14,8 +14,12 @@ permissions:
   pages: write
   id-token: write
 
+# One sync at a time. The group must differ from publish.yml's `registry` group: a called
+# workflow's own concurrency group is applied to the calling job, and GitHub cancels the run
+# as a deadlock when the top-level workflow already holds that group (run 39478941187).
+# Each publish job below still serializes with dispatched publications through `registry`.
 concurrency:
-  group: registry
+  group: sync-dev
   cancel-in-progress: false
 
 jobs:
