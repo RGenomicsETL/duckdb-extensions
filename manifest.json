@@ -536,6 +536,48 @@
         "sha": "a4b9f9832f2472af9ecb24bdfaa8ea82807b565d",
         "run_id": "40131258194"
       }
+    },
+    {
+      "channel": "dev",
+      "extension": "duckvep",
+      "version": "d1182d2",
+      "tag": "dev/duckvep/d1182d2",
+      "duckdb_versions": [
+        "v2.0.0"
+      ],
+      "platforms": {
+        "linux_amd64": {
+          "asset": "duckvep.linux_amd64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        },
+        "linux_arm64": {
+          "asset": "duckvep.linux_arm64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        },
+        "osx_amd64": {
+          "asset": "duckvep.osx_amd64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        },
+        "osx_arm64": {
+          "asset": "duckvep.osx_arm64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        },
+        "windows_amd64_mingw": {
+          "asset": "duckvep.windows_amd64_mingw.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        }
+      },
+      "key_fingerprint": "sha256:4e6e3fd190e775be1edd33003c3966f6fe5bd6312dfb1ca4d4ecabe7c65c9335",
+      "source": {
+        "repo": "RGenomicsETL/DuckVEP",
+        "sha": "d1182d2c71d33b326440cd27ea64f9d1c16d59ba",
+        "run_id": "40227087772"
+      }
     }
   ]
 }
