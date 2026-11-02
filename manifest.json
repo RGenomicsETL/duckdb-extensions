@@ -783,6 +783,48 @@
         "sha": "30c6984b2077cce8f1877043c955507190a37321",
         "run_id": "41463115563"
       }
+    },
+    {
+      "channel": "dev",
+      "extension": "ducktinycc",
+      "version": "9ef15a1",
+      "tag": "dev/ducktinycc/9ef15a1",
+      "duckdb_versions": [
+        "v2.0.0"
+      ],
+      "platforms": {
+        "linux_amd64": {
+          "asset": "ducktinycc.linux_amd64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        },
+        "linux_arm64": {
+          "asset": "ducktinycc.linux_arm64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        },
+        "osx_amd64": {
+          "asset": "ducktinycc.osx_amd64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        },
+        "osx_arm64": {
+          "asset": "ducktinycc.osx_arm64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        },
+        "windows_amd64_mingw": {
+          "asset": "ducktinycc.windows_amd64_mingw.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.2.0"
+        }
+      },
+      "key_fingerprint": "sha256:4e6e3fd190e775be1edd33003c3966f6fe5bd6312dfb1ca4d4ecabe7c65c9335",
+      "source": {
+        "repo": "sounkou-bioinfo/DuckTinyCC",
+        "sha": "9ef15a12179fada07cb436d7f1653080c01ed70b",
+        "run_id": "41506110322"
+      }
     }
   ]
 }
