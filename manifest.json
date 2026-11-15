@@ -901,8 +901,8 @@
       "key_fingerprint": "sha256:4e6e3fd190e775be1edd33003c3966f6fe5bd6312dfb1ca4d4ecabe7c65c9335",
       "source": {
         "repo": "RGenomicsETL/duckhts",
-        "sha": "e784ea29315d9f739e3b6a01fd042ae0105c84e3",
-        "run_id": "42382138916"
+        "sha": "8ec3017d02727cbf07d66226e551e98fa3f4eb7c",
+        "run_id": "43760035813"
       }
     },
     {
