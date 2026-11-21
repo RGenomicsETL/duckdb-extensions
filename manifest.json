@@ -1114,6 +1114,43 @@
         "sha": "27167ce6a9f6e46473a8e2b6a43061679342c658",
         "run_id": "44597470692"
       }
+    },
+    {
+      "channel": "dev",
+      "extension": "duckhts",
+      "version": "2.0.2.9001",
+      "tag": "dev/duckhts/2.0.2.9001",
+      "duckdb_versions": [
+        "v2.0.0"
+      ],
+      "platforms": {
+        "linux_amd64": {
+          "asset": "duckhts.linux_amd64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.5.6"
+        },
+        "linux_arm64": {
+          "asset": "duckhts.linux_arm64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.5.6"
+        },
+        "osx_arm64": {
+          "asset": "duckhts.osx_arm64.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.5.6"
+        },
+        "windows_amd64_mingw": {
+          "asset": "duckhts.windows_amd64_mingw.duckdb_extension.gz",
+          "abi": "C_STRUCT",
+          "capi": "v1.5.6"
+        }
+      },
+      "key_fingerprint": "sha256:4e6e3fd190e775be1edd33003c3966f6fe5bd6312dfb1ca4d4ecabe7c65c9335",
+      "source": {
+        "repo": "RGenomicsETL/duckhts",
+        "sha": "8df28b0154a231ef8c283f6942b076be9abb9390",
+        "run_id": "44852769948"
+      }
     }
   ]
 }
