@@ -5,7 +5,8 @@ Subcommands:
   footer FILE                      print the extension footer as JSON
   prepare --channel C --extension NAME --artifacts DIR --out DIR --key PEM
                                    validate CI artifacts, sign and gzip them
-  verify --dist DIR                install the prepared build through DuckDB with signatures on
+  verify --dist DIR                check every prepared signature against the channel keys and
+                                   install the Linux build through DuckDB with signatures on
   record --entry JSON [--supersede]
                                    append a prepared entry to manifest.json; --supersede lets a
                                    dev entry replace the recorded build of the same version
@@ -38,10 +39,12 @@ CHANNELS = ("dev", "stable")
 FOOTER_SIZE = 512
 SIGNATURE_SIZE = 256
 CHUNK = 1024 * 1024
-# wasm builds are resolved against duckdb-wasm's own version directories;
-# they are not published until duckdb-wasm supports user repositories.
 NATIVE_PLATFORMS = ("linux_amd64", "linux_arm64", "osx_amd64", "osx_arm64",
                     "windows_amd64", "windows_arm64", "windows_amd64_mingw")
+# duckdb-wasm requests <name>.duckdb_extension.wasm, uncompressed, where a native
+# DuckDB requests <name>.duckdb_extension.gz.
+WASM_PLATFORMS = ("wasm_mvp", "wasm_eh", "wasm_threads")
+WASM_SUFFIX = ".wasm"
 
 
 def footer(data: bytes) -> dict:
@@ -74,6 +77,23 @@ def sign(data: bytes, key: Path) -> bytes:
     return body + signature
 
 
+def signature_valid(data: bytes, pem: Path) -> bool:
+    """Whether the last 256 bytes of a signed extension are the public key's signature of the rest."""
+    with tempfile.TemporaryDirectory() as tmp:
+        digest, signature = Path(tmp, "digest"), Path(tmp, "signature")
+        digest.write_bytes(extension_hash(data[:-SIGNATURE_SIZE]))
+        signature.write_bytes(data[-SIGNATURE_SIZE:])
+        checked = subprocess.run(
+            ["openssl", "pkeyutl", "-verify", "-pubin", "-inkey", str(pem), "-pkeyopt", "digest:sha256",
+             "-in", str(digest), "-sigfile", str(signature)], capture_output=True)
+    return checked.returncode == 0
+
+
+def served_name(extension: str, asset: str) -> str:
+    """File name a DuckDB runtime requests for a stored asset."""
+    return f"{extension}.duckdb_extension" + (WASM_SUFFIX if asset.endswith(WASM_SUFFIX) else ".gz")
+
+
 def fingerprint(pem: Path) -> str:
     der = subprocess.run(["openssl", "pkey", "-pubin", "-in", str(pem), "-outform", "DER"],
                          check=True, capture_output=True).stdout
@@ -95,11 +115,14 @@ def cmd_prepare(args):
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     platforms, versions = {}, set()
-    for path in sorted(Path(args.artifacts).rglob(f"{args.extension}.duckdb_extension")):
+    name = f"{args.extension}.duckdb_extension"
+    artifacts = Path(args.artifacts)
+    for path in sorted(artifacts.rglob(name)) + sorted(artifacts.rglob(name + WASM_SUFFIX)):
         data = path.read_bytes()
         meta = footer(data)
-        if meta["platform"] not in NATIVE_PLATFORMS:
-            print(f"skip {meta['platform']}: not a native platform", file=sys.stderr)
+        is_wasm = path.suffix == WASM_SUFFIX
+        if meta["platform"] not in (WASM_PLATFORMS if is_wasm else NATIVE_PLATFORMS):
+            print(f"skip {path}: {meta['platform']} is not a published platform", file=sys.stderr)
             continue
         if meta["abi"] == "C_STRUCT_UNSTABLE" and engines != [meta["engine"]]:
             sys.exit(f"{path}: C_STRUCT_UNSTABLE build for {meta['engine']} can only be published under that version")
@@ -108,12 +131,18 @@ def cmd_prepare(args):
         if meta["platform"] in platforms:
             sys.exit(f"duplicate artifact for {meta['platform']}")
         versions.add(meta["extension_version"])
-        asset = f"{args.extension}.{meta['platform']}.duckdb_extension.gz"
-        with gzip.open(out / asset, "wb", compresslevel=9) as fh:
-            fh.write(sign(data, Path(args.key)))
+        signed = sign(data, Path(args.key))
+        asset = f"{args.extension}.{meta['platform']}.duckdb_extension"
+        if is_wasm:
+            asset += WASM_SUFFIX
+            (out / asset).write_bytes(signed)
+        else:
+            asset += ".gz"
+            with gzip.open(out / asset, "wb", compresslevel=9) as fh:
+                fh.write(signed)
         platforms[meta["platform"]] = {"asset": asset, "abi": meta["abi"], "capi": meta["engine"]}
     if not platforms:
-        sys.exit("no native artifacts found")
+        sys.exit("no publishable artifacts found")
     if len(versions) != 1:
         sys.exit(f"artifacts disagree on extension version: {sorted(versions)}")
     version = versions.pop()
@@ -132,14 +161,27 @@ def cmd_prepare(args):
 
 
 def cmd_verify(args):
-    """Install the prepared linux_amd64 build through a real DuckDB 2.0 repository.
+    """Check the prepared build against the channel keys.
 
-    Signature checking stays on: the channel key must accept the build and the
-    other channel's key must reject it.
+    Every platform's signature must verify with the channel's public key and
+    fail with the other channel's. The linux_amd64 build is also installed
+    through a real DuckDB 2.0 repository with signature checking on, under
+    the same two keys.
     """
     import duckdb  # the 2.0 pre-release or later, installed by the workflow
 
     entry = json.loads(Path(args.dist, "entry.json").read_text())
+    other = next(c for c in CHANNELS if c != entry["channel"])
+    for platform, stored in sorted(entry["platforms"].items()):
+        raw = Path(args.dist, stored["asset"]).read_bytes()
+        data = raw if stored["asset"].endswith(WASM_SUFFIX) else gzip.decompress(raw)
+        if footer(data)["platform"] != platform:
+            sys.exit(f"{stored['asset']}: footer platform is not {platform}")
+        if not signature_valid(data, KEYS / f"{entry['channel']}.pem"):
+            sys.exit(f"{stored['asset']}: signature does not verify with the {entry['channel']} key")
+        if signature_valid(data, KEYS / f"{other}.pem"):
+            sys.exit(f"{stored['asset']}: signature verifies with the {other} key")
+        print(f"{platform}: signed by the {entry['channel']} key only")
     info = entry["platforms"].get("linux_amd64")
     if info is None:
         sys.exit("verify needs a linux_amd64 build")
@@ -167,7 +209,6 @@ def cmd_verify(args):
 
         install(entry["channel"], "accept")
         print(f"{entry['extension']} {entry['version']}: accepted by the {entry['channel']} key on DuckDB {engine}")
-        other = next(c for c in CHANNELS if c != entry["channel"])
         try:
             install(other, "reject")
         except duckdb.Error as err:
@@ -253,14 +294,14 @@ def cmd_site(args):
                 for engine in entry["duckdb_versions"]:
                     dest = prefix / entry["extension"] / entry["version"] / engine / platform
                     dest.mkdir(parents=True, exist_ok=True)
-                    shutil.copyfile(src, dest / f"{entry['extension']}.duckdb_extension.gz")
+                    shutil.copyfile(src, dest / served_name(entry["extension"], info["asset"]))
         for name, entry in latest.items():
             for platform, info in entry["platforms"].items():
                 src = fetch_asset(entry, info["asset"], assets)
                 for engine in entry["duckdb_versions"]:
                     dest = prefix / engine / platform
                     dest.mkdir(parents=True, exist_ok=True)
-                    shutil.copyfile(src, dest / f"{name}.duckdb_extension.gz")
+                    shutil.copyfile(src, dest / served_name(name, info["asset"]))
             rows.append((channel, name, entry))
     page = (ROOT / "site" / "index.html").read_text()
     table = "\n".join(

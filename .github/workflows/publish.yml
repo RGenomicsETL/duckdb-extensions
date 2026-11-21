@@ -104,7 +104,7 @@ jobs:
             --artifacts art --out dist --key "$key" --duckdb-versions "${{ inputs.duckdb_versions }}" \
             --source-repo "${{ inputs.source_repo }}" --source-sha "${{ steps.source.outputs.sha }}" --run-id "${{ inputs.run_id }}"
 
-      - name: Verify through DuckDB 2.0 with signature checking on
+      - name: Verify every signature, and the Linux build through DuckDB 2.0
         run: |
           python3 -m venv /tmp/duckdb2
           /tmp/duckdb2/bin/pip install --quiet --pre 'duckdb>=2.0.0.dev0'
@@ -123,7 +123,10 @@ jobs:
         run: |
           tag=$(jq -r .tag dist/entry.json)
           notes="Signed ${{ inputs.extension }} $(jq -r .version dist/entry.json) for the ${{ inputs.channel }} channel, built by ${{ inputs.source_repo }}@${{ steps.source.outputs.sha }} (run ${{ inputs.run_id }})."
-          gh release create "$tag" dist/*.gz --title "$tag" --notes "$notes" --target "$GITHUB_SHA" --prerelease
+          # Native builds are gzipped; wasm builds are stored as they are served.
+          shopt -s nullglob
+          assets=(dist/*.gz dist/*.wasm)
+          gh release create "$tag" "${assets[@]}" --title "$tag" --notes "$notes" --target "$GITHUB_SHA" --prerelease
 
       - name: Record in manifest.json
         run: |

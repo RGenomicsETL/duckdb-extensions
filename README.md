@@ -45,15 +45,33 @@ the same version replaces it.
 - The **Pages** workflow lays the manifest out as DuckDB expects:
   `<channel>/<duckdb version>/<platform>/<name>.duckdb_extension.gz` for the latest build and
   `<channel>/<name>/<version>/<duckdb version>/<platform>/…` for every build, plus
-  `<channel>/.well-known/duckdb-extension-repo.json`.
+  `<channel>/.well-known/duckdb-extension-repo.json`. A wasm platform (`wasm_mvp`, `wasm_eh`,
+  `wasm_threads`) holds `<name>.duckdb_extension.wasm`, uncompressed, which is the name
+  duckdb-wasm requests.
 
-Only native platforms are published. duckdb-wasm resolves extensions against its own version
-directories and is not yet covered.
+## duckdb-wasm
+
+A duckdb-wasm built on DuckDB 2.0 loads a signed build from a repository with unsigned
+extensions disallowed:
+
+```js
+await db.open({ homeDirectory: "/duckdb_home" });
+const conn = await db.connect();
+await conn.query("SET allow_extension_repositories = 'allowed'");
+await conn.query("CREATE EXTENSION REPOSITORY rgenomicsetl WITH PREFIX 'https://rgenomicsetl.github.io/duckdb-extensions/dev'");
+await conn.query("LOAD duckhts FROM rgenomicsetl");
+```
+
+Pass a `homeDirectory` outside OPFS when opening the database. With the default home,
+`opfs://home`, duckdb-wasm cannot read back the repository record it wrote, and the load
+fails. This was checked with `@duckdb/duckdb-wasm` 1.33.1-dev119.0 (DuckDB 2.0.0) in
+Chromium, whose `base` bundle requests the `wasm_eh` platform.
 
 Each channel's private key is an Actions secret (`SIGNING_KEY`) of the matching GitHub
 environment (`dev`, `stable`), with an offline copy kept by the maintainer. Before any binary is
-stored, the workflow installs the signed Linux build through DuckDB 2.0 with signature checking
-on, and checks that the other channel's key rejects it.
+stored, the workflow checks that every platform's signature verifies with the channel's public
+key and fails with the other channel's, and installs the signed Linux build through DuckDB 2.0
+with signature checking on under the same two keys. No wasm runtime runs in that workflow.
 
 DuckDB pins a repository's keys when it is registered and never refetches them, so rotating a
 key means publishing the new key alongside the old one, announcing its fingerprint, and asking
