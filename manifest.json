@@ -1143,13 +1143,28 @@
           "asset": "duckhts.windows_amd64_mingw.duckdb_extension.gz",
           "abi": "C_STRUCT",
           "capi": "v1.5.6"
+        },
+        "wasm_eh": {
+          "asset": "duckhts.wasm_eh.duckdb_extension.wasm",
+          "abi": "C_STRUCT",
+          "capi": "v1.5.6"
+        },
+        "wasm_mvp": {
+          "asset": "duckhts.wasm_mvp.duckdb_extension.wasm",
+          "abi": "C_STRUCT",
+          "capi": "v1.5.6"
+        },
+        "wasm_threads": {
+          "asset": "duckhts.wasm_threads.duckdb_extension.wasm",
+          "abi": "C_STRUCT",
+          "capi": "v1.5.6"
         }
       },
       "key_fingerprint": "sha256:4e6e3fd190e775be1edd33003c3966f6fe5bd6312dfb1ca4d4ecabe7c65c9335",
       "source": {
         "repo": "RGenomicsETL/duckhts",
-        "sha": "b54508bce7e0ff59b9beb0ebc04e3e9e2cb88b7a",
-        "run_id": "44862122308"
+        "sha": "57143d8fcacc032fe2cafcac7aca94294de2f701",
+        "run_id": "45067511844"
       }
     }
   ]
